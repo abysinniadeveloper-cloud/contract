@@ -17,9 +17,7 @@ const contractTypeRoutes = require("./contractTypeRoutes");
 
 // New workflow routes
 const newSubscriptionRoutes = require("./newSubscriptionRoutes");
-const newPassengerRoutes = require("./newPassengerRoutes");
-const newAdminRoutes = require("./newAdminRoutes");
-const newDriverRoutes = require("./newDriverRoutes");
+// using newAdminController via adminRoutes only
 
 // ✅ all routes require authentication
 router.use(authenticate);
@@ -43,8 +41,6 @@ router.use("/admin", adminRoutes);
 router.use("/subscription", newSubscriptionRoutes);
 // Note: /passenger routes are already registered above
 // router.use("/passenger", newPassengerRoutes);
-router.use("/admin/v2", newAdminRoutes);
-router.use("/driver", newDriverRoutes);
 
 // Export the main router
 module.exports = router;
