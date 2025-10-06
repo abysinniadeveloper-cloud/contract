@@ -5,15 +5,29 @@ const path = require("path");
 const { getPassengerById, getAdminById } = require("../utils/userService");
 
 // CREATE payment for subscription (used by newSubscriptionController)
-exports.createPaymentForSubscription = asyncHandler(async (subscriptionId, paymentData, file = null) => {
-  // Get subscription details
-  const subscription = await Subscription.findByPk(subscriptionId, {
-    include: [{ model: Contract, as: "contract" }]
-  });
+exports.createPaymentForSubscription = async (subscriptionId, paymentData, file = null) => {
+  try {
+    console.log("createPaymentForSubscription called with:", {
+      subscriptionId,
+      paymentData,
+      hasFile: !!file
+    });
 
-  if (!subscription) {
-    throw new Error("Subscription not found");
-  }
+    // Get subscription details
+    const subscription = await Subscription.findByPk(subscriptionId, {
+      include: [{ model: Contract, as: "contract" }]
+    });
+
+    console.log("Subscription found in createPaymentForSubscription:", {
+      found: !!subscription,
+      subscriptionId: subscription?.id,
+      contractId: subscription?.contract_id,
+      passengerId: subscription?.passenger_id
+    });
+
+    if (!subscription) {
+      throw new Error("Subscription not found");
+    }
 
   const payment = {
     subscription_id: subscriptionId,
@@ -23,17 +37,39 @@ exports.createPaymentForSubscription = asyncHandler(async (subscriptionId, payme
     payment_method: paymentData.payment_method,
     transaction_reference: paymentData.transaction_reference,
     due_date: paymentData.due_date || new Date(),
-    status: "PENDING",
+    status: paymentData.status || "PENDING",
     admin_approved: false,
   };
 
-  if (file) {
+  // Handle receipt image from form data or file upload
+  if (paymentData.receipt_image) {
+    payment.receipt_image = paymentData.receipt_image;
+  } else if (file) {
     payment.receipt_image = path.join("uploads", "payments", file.filename);
   }
 
+  console.log("About to create payment with data:", payment);
+  
   const createdPayment = await Payment.create(payment);
-  return createdPayment;
-});
+  
+  console.log("Payment created successfully:", {
+    id: createdPayment.id,
+    amount: createdPayment.amount,
+    payment_method: createdPayment.payment_method
+  });
+  
+    console.log("About to return payment object:", {
+      hasId: !!createdPayment.id,
+      hasAmount: !!createdPayment.amount,
+      fullObject: createdPayment.toJSON ? createdPayment.toJSON() : createdPayment
+    });
+    
+    return createdPayment;
+  } catch (error) {
+    console.error("Error in createPaymentForSubscription:", error);
+    throw error;
+  }
+};
 
 // CREATE with file upload (legacy endpoint)
 exports.createPayment = asyncHandler(async (req, res) => {
